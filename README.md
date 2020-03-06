@@ -45,11 +45,13 @@ The tool(s) are designed to use header values as keys rather than column indices
 | m | minor | minor text | NOT IMPLEMENTED YET |
 | M | major | major text | Major description text |
 
-## Examples
+## Examples - Discussion
+
+### Gender report
 
 ```text
 hyde pk_majors_minors $> python3 mmreport.py -M "Computer Science" --gender
-Report    Majors                    Minors            
+Report    Majors                    Minors
               F    M Total   Ratio     F    M Total   Ratio
 2019-08      18   61    79    0.23    16   14    30    0.53
 2019-09      19   61    80    0.24    15   17    32    0.47
@@ -63,22 +65,43 @@ hyde pk_majors_minors $>
 
 You will note that a folder containing `CSV` files spanning months in which students typically graduate will show a drop in the next month of churn report. This is of course, to be expected.
 
+### Churn by month report
+
 ```text
 --- MAJORS ---
 
 Adds  - In 2019-09 but not in 2019-08
-STUDENT     STUDENT       F 3.166 STUDENT@carthage.edu       2021   RC    
+STUDENT     STUDENT       F 3.166 STUDENT@carthage.edu       2021   RC
 
 Drops - In 2019-08 but not in 2019-09
 None
 
 Adds  - In 2019-10 but not in 2019-09
-STUDENT    STUDENT        F 0.000 STUDENT@carthage.edu       2023   RC    
+STUDENT    STUDENT        F 0.000 STUDENT@carthage.edu       2023   RC
 
 Drops - In 2019-09 but not in 2019-10
-STUDENT    STUDENT        M 0.000 STUDENT@carthage.edu       2023   RC    
-STUDENT    STUDENT        M 0.000 STUDENT@carthage.edu       2023   RC    
+STUDENT    STUDENT        M 0.000 STUDENT@carthage.edu       2023   RC
+STUDENT    STUDENT        M 0.000 STUDENT@carthage.edu       2023   RC
 STUDENT    STUDENT        F 2.287 STUDENT@carthage.edu       2022   RC
 
 REPORT CONTINUES - REMOVED FOR BREVITY
 ```
+
+In the churn by month report, information about each student is provided so as to provide some clue as to why they might have taken the action they took.
+
+For example, you may see that a student who appears to have dropped a major or minor also specified an expected graduate year and term that corresponds to the
+month in which the left the source data.
+
+You may see that a student dropped a major or minor with a very low cumulative GPA. This could be a reason for the drop. Note, that first year students will show a 0.00 GPA. These students dropping can reasonably be explained as being those who were tasting the major or minor and decided to switch.
+
+Another reasonable explanation for a drop of a minor is that the student found the demands of their major too large. Or, they picked up a different minor more suited to their interests.
+
+### Churn by student
+
+This is not implemented yet.
+
+## Requirements
+
+This tool is written for Python 3. The library modules it uses are standard with Python 3 so do not require additional installation.
+
+This tool is run from the command line. It can be made to launch from the desktop with some effort.
