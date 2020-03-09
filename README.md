@@ -43,8 +43,8 @@ The tool(s) are designed to use header values as keys rather than column indices
 | f | folder | path | REQUIRED path to CSV data file folder |
 | g | gender | | Produce gender report |
 | h | help | | Print usage text and exit |
-| l | list_minors | Print list of minor's email addresses |
-| L | list_majors | Print list of major's email addresses |
+| l | list_minors | | Print list of minor's email addresses |
+| L | list_majors | | Print list of major's email addresses |
 | m | minor | minor text | NOT IMPLEMENTED YET |
 | M | major | major text | Major description text |
 
