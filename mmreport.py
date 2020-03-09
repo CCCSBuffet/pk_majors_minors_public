@@ -12,9 +12,12 @@ DoGenderData = False
 DoChurnByMonth = False
 DoChurnByStudent = False
 DoExpectedGraduation = False
+DoMinorEmail = False
+DoMajorEmail = False
 
 EventData = { }
 ExpGradData = { }
+CurrentEmailAddresses = { }
 
 def PrintHelp():
 	print('Usage:')
@@ -24,15 +27,18 @@ def PrintHelp():
 	print('-f	--folder		arg is the folder (default is current directory)')
 	print('-g	--gender		output gender data')
 	print('-h	--help			print this text and exit')
+	print('-l	--list_minors		output email addresses of current minors')
+	print('-L	--list_majors		output email addresses of current majors')
 	print('-m	--minor			arg is the Minor text (remember double quotes if text contains spaces)')
 	print('-M	--major			arg is the Major text (remember double quotes if text contains spaces)')
 
 def HandleCommandLine():
 	global Major, Minor, Folder
 	global DoGenderData, DoChurnByMonth, DoChurnByStudent
-	global DoExpectedGraduation
-	short_opts = 'cCef:ghM:m:'
-	long_opts = ['help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender', 'expected_grad']
+	global DoExpectedGraduation, DoMajorEmail, DoMinorEmail
+
+	short_opts = 'cCef:ghlLM:m:'
+	long_opts = ['help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender', 'expected_grad', 'list_minors', 'list_majors']
 	try:
 		opts, a = getopt(sys.argv[1:], short_opts, long_opts)
 	except GetoptError as ex:
@@ -59,6 +65,11 @@ def HandleCommandLine():
 			DoChurnByStudent = True
 		elif o in ('-e', '--expected_grad'):
 			DoExpectedGraduation = True
+		elif o in ('-l', '--list_minors'):
+			DoMinorEmail = True
+		elif o in ('-L', '--list_majors'):
+			DoMajorEmail = True
+			
 	Major = Major.lstrip()
 	if Major == '':
 		print('-M or --major required')
@@ -94,11 +105,13 @@ def GetGender(line):
 		return 1
 
 def ReadAllData(files):
-	global ExpGradData
+	global ExpGradData, CurrentEmailAddresses
 	all_data = [ ]
 	literals = [ Major_Literal, Minor_Literal ]
 	for l in literals:
 		ExpGradData[l] = { }
+		CurrentEmailAddresses[l] = [ ]
+
 	for file in files:
 		with open(file) as fin:
 			report = { }
@@ -124,6 +137,7 @@ def ReadAllData(files):
 				#if file == files[0]:
 				#	EventData[email] = [ g, { 'program': type, 'action': 'Add', 'when': base, 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
 				if file == files[-1]:
+					CurrentEmailAddresses[type].append(email)
 					if pgy not in ExpGradData[type]:
 						ExpGradData[type][pgy] = 1
 					else:
@@ -243,6 +257,11 @@ def ExpectedGraduationReport():
 		if type != types[-1]:
 			print()
 
+def DoEmailList(type):
+	CurrentEmailAddresses[type].sort()
+	for e in CurrentEmailAddresses[type]:
+		print(e)
+
 if __name__ == "__main__":
 	HandleCommandLine()
 	files = EnumerateFolder(Folder)
@@ -257,6 +276,11 @@ if __name__ == "__main__":
 		ChurnByStudent(data)
 	if DoExpectedGraduation:
 		ExpectedGraduationReport()
+	if DoMinorEmail:
+		DoEmailList(Minor_Literal)
+	if DoMajorEmail:
+		DoEmailList(Major_Literal)
+
 
 
 	
