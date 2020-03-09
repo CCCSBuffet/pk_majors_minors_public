@@ -38,7 +38,8 @@ The tool(s) are designed to use header values as keys rather than column indices
 | -Short | --Long | Argument | Function |
 | ------ | ------ | -------- | -------- |
 | c | churn_by_month | | Produce churn report month by month |
-| C | churn_by_student | | Produce churn report by student - NOT IMPLEMENTED YET |
+| C | churn_by_student | | Produce churn report by student |
+| e | expected_grad | | Produce report showing expected graduation years |
 | f | folder | path | REQUIRED path to CSV data file folder |
 | g | gender | | Produce gender report |
 | h | help | | Print usage text and exit |
@@ -98,10 +99,43 @@ Another reasonable explanation for a drop of a minor is that the student found t
 
 ### Churn by student
 
-This is not implemented yet.
+This report is a dual of the "churn by month" report. It attempts to track the adds and drops over time by an individual student. This report has some limitations, however, as the granularity of the source data is *not* high. The report can detect changes only insofar as there are differences from month to month. A student that makes multiple changes, especially swapping major and minor can be confusing as listed in this report.
+
+```text
+$> python3 mmreport.py -f csv -M "Computer Science" --churn_by_student
+F STUDENT@carthage.edu   2019-09 Major  Add    3.166 2021 RC  
+M STUDENT@carthage.edu   2019-09 Minor  Add    3.625 2022 RC  
+                         2019-10 Minor  Drop   3.625 2022 RC  
+M STUDENT@carthage.edu   2019-09 Minor  Add    2.220 2023 RC  
+M STUDENT@carthage.edu   2019-09 Minor  Add    4.000 2021 RC  
+F STUDENT@carthage.edu   2019-08 Minor  Drop   3.923 2020 RC  
+                         2019-12 Minor  Add    3.923 2020 RC
+```
+
+### Expected graduation report
+
+This report uses only the latest file's data as its source.
+
+```text
+$> python3 mmreport.py -f csv -M "Computer Science" -e
+Major
+Cohort     Count
+2020           9
+2021          15
+2022          17
+2023          28
+
+Minor
+Cohort     Count
+2020           5
+2021           6
+2022           4
+2023           8
+```
 
 ## Requirements
 
 This tool is written for Python 3. The library modules it uses are standard with Python 3 so do not require additional installation.
 
-This tool is run from the command line. It can be made to launch from the desktop with some effort.
+This tool is run from the command line. It can be made to launch from the desktop with some effort. This may be documented in the future.
+

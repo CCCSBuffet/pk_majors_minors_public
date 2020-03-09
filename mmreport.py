@@ -3,18 +3,24 @@ import sys
 import os
 from getopt import getopt, GetoptError
 
+Major_Literal = 'Major'
+Minor_Literal = 'Minor'
 Major = ''
 Minor = ''
 Folder = '.'
 DoGenderData = False
 DoChurnByMonth = False
 DoChurnByStudent = False
+DoExpectedGraduation = False
+
 EventData = { }
+ExpGradData = { }
 
 def PrintHelp():
 	print('Usage:')
 	print('-c	--churn_by_month	output churn data by month')
 	print('-C	--churn_by_student	output churn data by student')
+	print('-e	--expected_grad		expected graduation year')
 	print('-f	--folder		arg is the folder (default is current directory)')
 	print('-g	--gender		output gender data')
 	print('-h	--help			print this text and exit')
@@ -24,8 +30,9 @@ def PrintHelp():
 def HandleCommandLine():
 	global Major, Minor, Folder
 	global DoGenderData, DoChurnByMonth, DoChurnByStudent
-	short_opts = 'cCf:ghM:m:'
-	long_opts = ['help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender']
+	global DoExpectedGraduation
+	short_opts = 'cCef:ghM:m:'
+	long_opts = ['help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender', 'expected_grad']
 	try:
 		opts, a = getopt(sys.argv[1:], short_opts, long_opts)
 	except GetoptError as ex:
@@ -50,6 +57,8 @@ def HandleCommandLine():
 			DoChurnByMonth = True
 		elif o in ('-C', '--churn_by_student'):
 			DoChurnByStudent = True
+		elif o in ('-e', '--expected_grad'):
+			DoExpectedGraduation = True
 	Major = Major.lstrip()
 	if Major == '':
 		print('-M or --major required')
@@ -73,9 +82,9 @@ def EnumerateFolder(folder):
 
 def	GetType(line):
 	if Major in [line['Major 1 Description'], line['Major 2 Description']]:
-		return 'Major'
+		return Major_Literal
 	elif Minor in [line['Minor 1 Description'], line['Minor 2 Description'], line['Minor 3 Description']]:
-		return 'Minor'
+		return Minor_Literal
 	return None
 
 def GetGender(line):
@@ -85,7 +94,11 @@ def GetGender(line):
 		return 1
 
 def ReadAllData(files):
+	global ExpGradData
 	all_data = [ ]
+	literals = [ Major_Literal, Minor_Literal ]
+	for l in literals:
+		ExpGradData[l] = { }
 	for file in files:
 		with open(file) as fin:
 			report = { }
@@ -93,7 +106,7 @@ def ReadAllData(files):
 			report['name'] = base
 			report['year'] = base[0:4]
 			report['month'] = base[-2:]
-			for type in ['Major', 'Minor']:
+			for type in [Major_Literal, Minor_Literal]:
 				report[type] = { }
 				report[type]['gender'] = [ 0, 0 ]
 				report[type]['student'] = { }
@@ -110,6 +123,11 @@ def ReadAllData(files):
 					continue
 				#if file == files[0]:
 				#	EventData[email] = [ g, { 'program': type, 'action': 'Add', 'when': base, 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
+				if file == files[-1]:
+					if pgy not in ExpGradData[type]:
+						ExpGradData[type][pgy] = 1
+					else:
+						ExpGradData[type][pgy] += 1
 				report[type]['gender'][GetGender(line)] += 1
 				report[type]['student'][email] = line
 			all_data.append(report)
@@ -134,9 +152,9 @@ def MakeGenderPlot(data):
 	print()
 	for report in data:
 		print('{:<10s}'.format(report['name']), end='')
-		f, m, r = ExtractGender(report['Major'])
+		f, m, r = ExtractGender(report[Major_Literal])
 		print('{:>5d}{:>5d}{:>6d}{:>8.2f} '.format(f, m, f + m, r), end='')
-		f, m, r = ExtractGender(report['Minor'])
+		f, m, r = ExtractGender(report[Minor_Literal])
 		print('{:>5d}{:>5d}{:>6d}{:>8.2f}'.format(f, m, f + m, r), end='')
 		print()
 
@@ -189,19 +207,19 @@ def ChurnByMonth(data):
 	print('--- MAJORS ---')
 	print()
 	for index in range(len(data) - 1):
-		GetDelta('Major', data[index], data[index + 1])
+		GetDelta(Major_Literal, data[index], data[index + 1])
 		print()	
 	print()
 	print('--- MINORS ---')
 	print()
 	for index in range(len(data) - 1):
-		GetDelta('Minor', data[index], data[index + 1])
+		GetDelta(Minor_Literal, data[index], data[index + 1])
 		print()
 
 def	ChurnByStudent(data):
 	for index in range(len(data) - 1):
-		GetDelta('Major', data[index], data[index + 1], False)
-		GetDelta('Minor', data[index], data[index + 1], False)
+		GetDelta(Major_Literal, data[index], data[index + 1], False)
+		GetDelta(Minor_Literal, data[index], data[index + 1], False)
 	for email in EventData:
 		if len(EventData[email]) > 1:
 			ed = EventData[email]
@@ -210,6 +228,20 @@ def	ChurnByStudent(data):
 			print('{:<8s}{:<6s} {:<6s} {:<5.3f} {:<4s} {:<2s}'.format(d['when'], d['program'], d['action'], d['gpa'], d['pgy'], d['pgs']))
 			for d in ed[2:]:
 				print('{:28s}{:<8s}{:<6s} {:<6s} {:<5.3f} {:<4s} {:<2s}'.format(' ', d['when'], d['program'], d['action'], d['gpa'], d['pgy'], d['pgs']))
+
+def ExpectedGraduationReport():
+	global ExpGradData
+	types = list(ExpGradData.keys())
+	types.sort()
+	for type in types:
+		print(type)
+		print('{:<10s}{:>6s}'.format('Cohort', 'Count'))
+		years = list(ExpGradData[type].keys())
+		years.sort()
+		for year in years:
+			print('{:<10s}{:>6d}'.format(year, ExpGradData[type][year]))
+		if type != types[-1]:
+			print()
 
 if __name__ == "__main__":
 	HandleCommandLine()
@@ -223,4 +255,8 @@ if __name__ == "__main__":
 		ChurnByMonth(data)
 	if DoChurnByStudent:
 		ChurnByStudent(data)
+	if DoExpectedGraduation:
+		ExpectedGraduationReport()
+
+
 	
