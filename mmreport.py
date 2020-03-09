@@ -7,7 +7,7 @@ Major = ''
 Minor = ''
 Folder = '.'
 DoGenderData = False
-DoChurnByTerm = False
+DoChurnByMonth = False
 DoChurnByStudent = False
 EventData = { }
 
@@ -23,7 +23,7 @@ def PrintHelp():
 
 def HandleCommandLine():
 	global Major, Minor, Folder
-	global DoGenderData, DoChurnByTerm, DoChurnByStudent
+	global DoGenderData, DoChurnByMonth, DoChurnByStudent
 	short_opts = 'cCf:ghM:m:'
 	long_opts = ['help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender']
 	try:
@@ -47,12 +47,15 @@ def HandleCommandLine():
 		elif o in ('-g', '--gender'):
 			DoGenderData = True
 		elif o in ('-c', '--churn_by_month'):
-			DoChurnByTerm = True
-		elif o in ('-g', '--churn_by_student'):
+			DoChurnByMonth = True
+		elif o in ('-C', '--churn_by_student'):
 			DoChurnByStudent = True
 	Major = Major.lstrip()
 	if Major == '':
 		print('-M or --major required')
+		exit(1)
+	if DoChurnByMonth and DoChurnByStudent:
+		print('Cannot produce both churn reports in one instance of the program.')
 		exit(1)
 	return
 
@@ -70,9 +73,9 @@ def EnumerateFolder(folder):
 
 def	GetType(line):
 	if Major in [line['Major 1 Description'], line['Major 2 Description']]:
-		return 'majors'
+		return 'Major'
 	elif Minor in [line['Minor 1 Description'], line['Minor 2 Description'], line['Minor 3 Description']]:
-		return 'minors'
+		return 'Minor'
 	return None
 
 def GetGender(line):
@@ -90,7 +93,7 @@ def ReadAllData(files):
 			report['name'] = base
 			report['year'] = base[0:4]
 			report['month'] = base[-2:]
-			for type in ['majors', 'minors']:
+			for type in ['Major', 'Minor']:
 				report[type] = { }
 				report[type]['gender'] = [ 0, 0 ]
 				report[type]['student'] = { }
@@ -99,11 +102,14 @@ def ReadAllData(files):
 				type = GetType(line)
 				g = line['Gender Code']
 				email = line['Carthage E-mail']
-				gpa = line['Cumulative GPA']
+				gpa = float(line['Cumulative GPA'])
+				pgy = line['Planned Graduation Year']
+				pgs = line['Planned Graduation Session Code']
+
 				if type == None:
 					continue
-				if file == files[0]:
-					EventData[email] = [ g, { type: 'Add', 'when': base, 'gpa': gpa} ]
+				#if file == files[0]:
+				#	EventData[email] = [ g, { 'program': type, 'action': 'Add', 'when': base, 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
 				report[type]['gender'][GetGender(line)] += 1
 				report[type]['student'][email] = line
 			all_data.append(report)
@@ -119,8 +125,8 @@ def ExtractGender(d):
 
 def MakeGenderPlot(data):
 	print('{:<10s}'.format('Report'), end='')
-	print('{:<25s} '.format('Majors'), end='')
-	print('{:<18s}'.format('Minors'), end='')
+	print('{:<25s} '.format('Major'), end='')
+	print('{:<18s}'.format('Minor'), end='')
 	print()
 	print('{:<10s}'.format(''), end='')
 	print('{:>5s}{:>5s}{:>6s}{:>8s} '.format('F', 'M', 'Total', 'Ratio'), end='')
@@ -128,13 +134,13 @@ def MakeGenderPlot(data):
 	print()
 	for report in data:
 		print('{:<10s}'.format(report['name']), end='')
-		f, m, r = ExtractGender(report['majors'])
+		f, m, r = ExtractGender(report['Major'])
 		print('{:>5d}{:>5d}{:>6d}{:>8.2f} '.format(f, m, f + m, r), end='')
-		f, m, r = ExtractGender(report['minors'])
+		f, m, r = ExtractGender(report['Minor'])
 		print('{:>5d}{:>5d}{:>6d}{:>8.2f}'.format(f, m, f + m, r), end='')
 		print()
 
-def GetDelta(type, r1, r2):
+def GetDelta(type, r1, r2, do_printing = True):
 	global EventData
 	s1 = set(r1[type]['student'].keys())
 	s2 = set(r2[type]['student'].keys())
@@ -146,11 +152,13 @@ def GetDelta(type, r1, r2):
 		if counter == 0:
 			r = r2
 			direction = 'Add'
-			print('Adds  - In', r2['name'], 'but not in', r1['name'])
+			if do_printing:
+				print('Adds  - In', r2['name'],'compared to', r1['name'])
 		else:
 			r = r1
 			direction = 'Drop'
-			print('Drops - In', r1['name'], 'but not in', r2['name'])
+			if do_printing:
+				print('Drops - In', r1['name'],'compared to', r2['name'])
 		something_printed = False
 		for email in s:
 			l = r[type]['student'][email]
@@ -159,22 +167,49 @@ def GetDelta(type, r1, r2):
 			pgy = l['Planned Graduation Year']
 			pgs = l['Planned Graduation Session Code']
 
-			if email not in EventData.keys():
-				EventData[email] = [ g, { type: direction, 'when': r['name'], 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
+			if email not in EventData:
+				EventData[email] = [ g, { 'program': type, 'action': direction, 'when': r['name'], 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
 			else:
-				EventData[email].append([ { type: direction, 'when': r['name'], 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ])
-			print('{:<12s} {:<12s} {:<1s}'.format(l['Last Name'], l['First Name'], g), end='')
-			print(' {:<4.3f}'.format(gpa), end='')
-			print(' {:<26s}'.format(email), end='')
-			print(' {:<6s}'.format(pgy), end='')
-			print(' {:<6s}'.format(pgs), end='')
-			print()
-			something_printed = True
-		if something_printed == False:
+				EventData[email].append({ 'program': type, 'action': direction, 'when': r['name'], 'gpa': gpa, 'pgy': pgy, 'pgs': pgs })
+			if do_printing:
+				print('{:<12s} {:<12s} {:<1s}'.format(l['Last Name'], l['First Name'], g), end='')
+				print(' {:<4.3f}'.format(gpa), end='')
+				print(' {:<26s}'.format(email), end='')
+				print(' {:<6s}'.format(pgy), end='')
+				print(' {:<6s}'.format(pgs), end='')
+				print()
+				something_printed = True
+		if something_printed == False and do_printing:
 			print('None')
-		if counter == 0:
+		if counter == 0 and do_printing:
 			print()
 		counter += 1
+
+def ChurnByMonth(data):
+	print('--- MAJORS ---')
+	print()
+	for index in range(len(data) - 1):
+		GetDelta('Major', data[index], data[index + 1])
+		print()	
+	print()
+	print('--- MINORS ---')
+	print()
+	for index in range(len(data) - 1):
+		GetDelta('Minor', data[index], data[index + 1])
+		print()
+
+def	ChurnByStudent(data):
+	for index in range(len(data) - 1):
+		GetDelta('Major', data[index], data[index + 1], False)
+		GetDelta('Minor', data[index], data[index + 1], False)
+	for email in EventData:
+		if len(EventData[email]) > 1:
+			ed = EventData[email]
+			print('{:<2s}{:26s}'.format(ed[0], email), end='')
+			d = ed[1]
+			print('{:<8s}{:<6s} {:<6s} {:<5.3f} {:<4s} {:<2s}'.format(d['when'], d['program'], d['action'], d['gpa'], d['pgy'], d['pgs']))
+			for d in ed[2:]:
+				print('{:28s}{:<8s}{:<6s} {:<6s} {:<5.3f} {:<4s} {:<2s}'.format(' ', d['when'], d['program'], d['action'], d['gpa'], d['pgy'], d['pgs']))
 
 if __name__ == "__main__":
 	HandleCommandLine()
@@ -184,16 +219,8 @@ if __name__ == "__main__":
 	data = ReadAllData(files)
 	if DoGenderData:
 		MakeGenderPlot(data)
-	if DoChurnByTerm:
-		print('--- MAJORS ---')
-		print()
-		for index in range(len(data) - 1):
-			GetDelta('majors', data[index], data[index + 1])
-			print()	
-		print()
-		print('--- MINORS ---')
-		print()
-		for index in range(len(data) - 1):
-			GetDelta('minors', data[index], data[index + 1])
-			print()
-	#print(EventData)
+	if DoChurnByMonth:
+		ChurnByMonth(data)
+	if DoChurnByStudent:
+		ChurnByStudent(data)
+	

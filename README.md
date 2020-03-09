@@ -68,24 +68,24 @@ You will note that a folder containing `CSV` files spanning months in which stud
 ### Churn by month report
 
 ```text
---- MAJORS ---
 
-Adds  - In 2019-09 but not in 2019-08
-STUDENT     STUDENT       F 3.166 STUDENT@carthage.edu       2021   RC
+REPORT SNIPPED - REMOVED FOR BREVITY
+--- MINORS ---
 
-Drops - In 2019-08 but not in 2019-09
-None
+Adds  - In 2019-09 compared to 2019-08
+STUDENT   STUDENT    M 2.220 STUDENT@carthage.edu   2023   RC    
+STUDENT   STUDENT    M 3.625 STUDENT@carthage.edu   2022   RC    
+STUDENT   STUDENT    M 4.000 STUDENT@carthage.edu   2021   RC    
 
-Adds  - In 2019-10 but not in 2019-09
-STUDENT    STUDENT        F 0.000 STUDENT@carthage.edu       2023   RC
-
-Drops - In 2019-09 but not in 2019-10
-STUDENT    STUDENT        M 0.000 STUDENT@carthage.edu       2023   RC
-STUDENT    STUDENT        M 0.000 STUDENT@carthage.edu       2023   RC
-STUDENT    STUDENT        F 2.287 STUDENT@carthage.edu       2022   RC
+Drops - In 2019-08 compared to 2019-09
+STUDENT   STUDENT    F 3.923 STUDENT@carthage.edu   2020   RC    
 
 REPORT CONTINUES - REMOVED FOR BREVITY
 ```
+
+An `Add` says that a student is in the later of two reports and not in the earlier.
+
+A `Drop` says a student was in the ealier of the two reports but not in the later.
 
 In the churn by month report, information about each student is provided so as to provide some clue as to why they might have taken the action they took.
 
