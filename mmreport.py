@@ -14,6 +14,7 @@ DoChurnByStudent = False
 DoExpectedGraduation = False
 DoMinorEmail = False
 DoMajorEmail = False
+DoPairing = False
 
 EventData = { }
 ExpGradData = { }
@@ -31,14 +32,16 @@ def PrintHelp():
 	print('-L	--list_majors		output email addresses of current majors')
 	print('-m	--minor			arg is the Minor text (remember double quotes if text contains spaces)')
 	print('-M	--major			arg is the Major text (remember double quotes if text contains spaces)')
+	print('-p	--pairings		calculates distributions of Major and Minor pairings')
 
 def HandleCommandLine():
 	global Major, Minor, Folder
 	global DoGenderData, DoChurnByMonth, DoChurnByStudent
 	global DoExpectedGraduation, DoMajorEmail, DoMinorEmail
+	global DoPairing
 
-	short_opts = 'cCef:ghlLM:m:'
-	long_opts = ['help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender', 'expected_grad', 'list_minors', 'list_majors']
+	short_opts = 'cCef:ghlLM:m:p'
+	long_opts = ['pairings', 'help', 'major=', 'minor=', 'folder=', 'churn_by_month', 'churn_by_student', 'gender', 'expected_grad', 'list_minors', 'list_majors']
 	try:
 		opts, a = getopt(sys.argv[1:], short_opts, long_opts)
 	except GetoptError as ex:
@@ -46,6 +49,8 @@ def HandleCommandLine():
 		PrintHelp()
 		exit(1)
 	for o, a in opts:
+		if o in ('-p', '--pairings'):
+			DoPairing = True
 		if o in ('-f', '--folder'):
 			Folder = a
 		elif o in ('-h', '--help'):
@@ -106,19 +111,24 @@ def GetGender(line):
 
 def ReadAllData(files):
 	global ExpGradData, CurrentEmailAddresses
+	global Pairings
+	Pairings = { }
 	all_data = [ ]
 	literals = [ Major_Literal, Minor_Literal ]
 	for l in literals:
 		ExpGradData[l] = { }
 		CurrentEmailAddresses[l] = [ ]
+		Pairings[l] = { }
 
 	for file in files:
 		with open(file) as fin:
 			report = { }
+			
 			base = os.path.basename(file)[3:-4]
 			report['name'] = base
 			report['year'] = base[0:4]
 			report['month'] = base[-2:]
+
 			for type in [Major_Literal, Minor_Literal]:
 				report[type] = { }
 				report[type]['gender'] = [ 0, 0 ]
@@ -142,6 +152,20 @@ def ReadAllData(files):
 						ExpGradData[type][pgy] = 1
 					else:
 						ExpGradData[type][pgy] += 1
+					if type == Major_Literal:
+						m1 = line['Major 1 Description']
+						m2 = line['Major 2 Description']
+						if m1 == Major or m2 == Major:
+							if m1 == Major:
+								m = m1 + '+' + m2
+							if m2 == Major:
+								m = m2 + '+' + m1
+							if m in Pairings[type]:
+								Pairings[type][m] += 1
+							else:
+								Pairings[type][m] = 1
+					elif type == Minor_Literal:
+						pass
 				report[type]['gender'][GetGender(line)] += 1
 				report[type]['student'][email] = line
 			all_data.append(report)
@@ -262,12 +286,23 @@ def DoEmailList(type):
 	for e in CurrentEmailAddresses[type]:
 		print(e)
 
+def GeneratePairings():
+	global Pairings
+	print('Pairings of Majors')
+	majors = Pairings['Major']
+	for p in majors:
+		count = majors[p]
+		m = p.split('+')
+		print('{:<30s} {:<30s} {:3d}'.format(m[0], m[1], count))
+
 if __name__ == "__main__":
 	HandleCommandLine()
 	files = EnumerateFolder(Folder)
 	if len(files) == 0:
 		exit('No CSV files found')
 	data = ReadAllData(files)
+	if DoPairing:
+		GeneratePairings()
 	if DoGenderData:
 		MakeGenderPlot(data)
 	if DoChurnByMonth:
