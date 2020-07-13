@@ -129,46 +129,49 @@ def ReadAllData(files):
 			report['year'] = base[0:4]
 			report['month'] = base[-2:]
 
-			for type in [Major_Literal, Minor_Literal]:
-				report[type] = { }
-				report[type]['gender'] = [ 0, 0 ]
-				report[type]['student'] = { }
-			reader = csv.DictReader(fin)
-			for line in reader:
-				type = GetType(line)
-				g = line['Gender Code']
-				email = line['Carthage E-mail']
-				gpa = float(line['Cumulative GPA'])
-				pgy = line['Planned Graduation Year']
-				pgs = line['Planned Graduation Session Code']
+			try:
+				for type in [Major_Literal, Minor_Literal]:
+					report[type] = { }
+					report[type]['gender'] = [ 0, 0 ]
+					report[type]['student'] = { }
+				reader = csv.DictReader(fin)
+				for line in reader:
+					type = GetType(line)
+					g = line['Gender Code']
+					email = line['Carthage E-mail']
+					gpa = float(line['Cumulative GPA'])
+					pgy = line['Planned Graduation Year']
+					pgs = line['Planned Graduation Session Code']
 
-				if type == None:
-					continue
-				#if file == files[0]:
-				#	EventData[email] = [ g, { 'program': type, 'action': 'Add', 'when': base, 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
-				if file == files[-1]:
-					CurrentEmailAddresses[type].append(email)
-					if pgy not in ExpGradData[type]:
-						ExpGradData[type][pgy] = 1
-					else:
-						ExpGradData[type][pgy] += 1
-					if type == Major_Literal:
-						m1 = line['Major 1 Description']
-						m2 = line['Major 2 Description']
-						if m1 == Major or m2 == Major:
-							if m1 == Major:
-								m = m1 + '+' + m2
-							if m2 == Major:
-								m = m2 + '+' + m1
-							if m in Pairings[type]:
-								Pairings[type][m] += 1
-							else:
-								Pairings[type][m] = 1
-					elif type == Minor_Literal:
-						pass
-				report[type]['gender'][GetGender(line)] += 1
-				report[type]['student'][email] = line
-			all_data.append(report)
+					if type == None:
+						continue
+					#if file == files[0]:
+					#	EventData[email] = [ g, { 'program': type, 'action': 'Add', 'when': base, 'gpa': gpa, 'pgy': pgy, 'pgs': pgs } ]
+					if file == files[-1]:
+						CurrentEmailAddresses[type].append(email)
+						if pgy not in ExpGradData[type]:
+							ExpGradData[type][pgy] = 1
+						else:
+							ExpGradData[type][pgy] += 1
+						if type == Major_Literal:
+							m1 = line['Major 1 Description']
+							m2 = line['Major 2 Description']
+							if m1 == Major or m2 == Major:
+								if m1 == Major:
+									m = m1 + '+' + m2
+								if m2 == Major:
+									m = m2 + '+' + m1
+								if m in Pairings[type]:
+									Pairings[type][m] += 1
+								else:
+									Pairings[type][m] = 1
+						elif type == Minor_Literal:
+							pass
+					report[type]['gender'][GetGender(line)] += 1
+					report[type]['student'][email] = line
+				all_data.append(report)
+			except KeyError:
+				print("Skipping:", file)
 	return all_data
 
 def ExtractGender(d):
@@ -181,8 +184,8 @@ def ExtractGender(d):
 
 def MakeGenderPlot(data):
 	print('{:<10s}'.format('Report'), end='')
-	print('{:<25s} '.format('Major'), end='')
-	print('{:<18s}'.format('Minor'), end='')
+	print('{:<24s} '.format('Major'), end='')
+	print('{:<19s}'.format('Minor'), end='')
 	print()
 	print('{:<10s}'.format(''), end='')
 	print('{:>5s}{:>5s}{:>6s}{:>8s} '.format('F', 'M', 'Total', 'Ratio'), end='')
